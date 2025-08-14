@@ -1,10 +1,461 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
+<html lang="zh-CN">
+<head>
     <meta charset="UTF-8">
-    <title>sbkdwz Test</title>
-  </head>
-  <body>
-    <h1>Hello from sbkdwz — GitHub Pages is live!</h1>
-  </body>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>彩虹连连看</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: white;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-align: center;
+            background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+            background-size: 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient 3s ease infinite;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 15px;
+            margin: 0 10px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(8, 70px);
+            grid-template-rows: repeat(6, 70px);
+            gap: 5px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+        }
+
+        .card {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(145deg, #e6e6e6, #ffffff);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            cursor: pointer;
+            border-radius: 15px;
+            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.1),
+                       -5px -5px 15px rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.5) 50%, transparent 70%);
+            transform: translateX(-100%);
+            transition: 0.6s;
+        }
+
+        .card:hover::before {
+            transform: translateX(100%);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 5px 10px 20px rgba(0, 0, 0, 0.2),
+                       -5px -5px 15px rgba(255, 255, 255, 0.8);
+        }
+
+        .card.selected {
+            background: linear-gradient(145deg, #4facfe, #00f2fe);
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(79, 172, 254, 0.5);
+        }
+
+        .card.matched {
+            background: linear-gradient(145deg, #a8edea, #fed6e3);
+            transform: scale(0.9);
+            opacity: 0.3;
+            cursor: default;
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 20px;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        #restart-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        #restart-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        #hint-btn {
+            background: linear-gradient(45deg, #feca57, #ff9ff3);
+            color: white;
+        }
+
+        #hint-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .game-board {
+                grid-template-columns: repeat(8, 50px);
+                grid-template-rows: repeat(6, 50px);
+            }
+            
+            .card {
+                width: 50px;
+                height: 50px;
+                font-size: 24px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🌈 彩虹连连看 🌈</h1>
+        
+        <div class="game-info">
+            <div class="info-item">
+                <span>🎯 剩余: <span id="pairs-left">24</span></span>
+            </div>
+            <div class="info-item">
+                <span>⏰ 时间: <span id="timer">0</span>秒</span>
+            </div>
+            <div class="info-item">
+                <span>⭐ 得分: <span id="score">0</span></span>
+            </div>
+        </div>
+        
+        <div class="game-board" id="game-board"></div>
+        
+        <div class="btn-container">
+            <button id="restart-btn">🔄 重新开始</button>
+            <button id="hint-btn">💡 提示</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const gameBoard = document.getElementById('game-board');
+            const pairsLeftElement = document.getElementById('pairs-left');
+            const timerElement = document.getElementById('timer');
+            const scoreElement = document.getElementById('score');
+            const restartBtn = document.getElementById('restart-btn');
+            const hintBtn = document.getElementById('hint-btn');
+            
+            const ROWS = 6;
+            const COLS = 8;
+            const TOTAL_CARDS = ROWS * COLS;
+            const ICONS = ['🍎', '🍌', '🍇', '🍓', '🍒', '🍑', '🍍', '🥝', '🍊', '🍋', '🍉', '🥭', '🍈', '🍅', '🥥', '🍐'];
+            
+            let cards = [];
+            let selectedCards = [];
+            let pairsLeft = TOTAL_CARDS / 2;
+            let startTime;
+            let timerInterval;
+            let gameMatrix = [];
+            let score = 0;
+            let hintsUsed = 0;
+            
+            // 初始化游戏
+            function initGame() {
+                gameBoard.innerHTML = '';
+                cards = [];
+                selectedCards = [];
+                pairsLeft = TOTAL_CARDS / 2;
+                score = 0;
+                hintsUsed = 0;
+                
+                pairsLeftElement.textContent = pairsLeft;
+                scoreElement.textContent = score;
+                
+                // 创建游戏矩阵
+                gameMatrix = Array(ROWS + 2).fill().map(() => Array(COLS + 2).fill(0));
+                
+                // 创建卡片对
+                const cardPairs = [];
+                for (let i = 0; i < TOTAL_CARDS / 2; i++) {
+                    const icon = ICONS[i % ICONS.length];
+                    cardPairs.push(icon, icon);
+                }
+                
+                // 洗牌
+                for (let i = cardPairs.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [cardPairs[i], cardPairs[j]] = [cardPairs[j], cardPairs[i]];
+                }
+                
+                // 创建卡片
+                for (let i = 0; i < TOTAL_CARDS; i++) {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.textContent = cardPairs[i];
+                    card.dataset.index = i;
+                    card.dataset.icon = cardPairs[i];
+                    
+                    const row = Math.floor(i / COLS) + 1;
+                    const col = (i % COLS) + 1;
+                    card.dataset.row = row;
+                    card.dataset.col = col;
+                    
+                    gameMatrix[row][col] = 1;
+                    
+                    card.addEventListener('click', handleCardClick);
+                    gameBoard.appendChild(card);
+                    cards.push(card);
+                }
+                
+                // 启动计时器
+                if (timerInterval) clearInterval(timerInterval);
+                startTime = Date.now();
+                timerInterval = setInterval(updateTimer, 1000);
+                timerElement.textContent = '0';
+            }
+            
+            // 更新计时器
+            function updateTimer() {
+                const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                timerElement.textContent = elapsedSeconds;
+            }
+            
+            // 处理卡片点击
+            function handleCardClick(event) {
+                const card = event.target;
+                
+                if (card.classList.contains('matched') || card.classList.contains('selected')) {
+                    return;
+                }
+                
+                if (selectedCards.length < 2) {
+                    card.classList.add('selected');
+                    selectedCards.push(card);
+                    
+                    if (selectedCards.length === 2) {
+                        checkMatch();
+                    }
+                }
+            }
+            
+            // 检查匹配
+            function checkMatch() {
+                const [card1, card2] = selectedCards;
+                
+                if (card1.dataset.icon === card2.dataset.icon) {
+                    const path = findPath(
+                        parseInt(card1.dataset.row), parseInt(card1.dataset.col),
+                        parseInt(card2.dataset.row), parseInt(card2.dataset.col)
+                    );
+                    
+                    if (path) {
+                        setTimeout(() => {
+                            card1.classList.remove('selected');
+                            card2.classList.remove('selected');
+                            card1.classList.add('matched');
+                            card2.classList.add('matched');
+                            
+                            gameMatrix[parseInt(card1.dataset.row)][parseInt(card1.dataset.col)] = 0;
+                            gameMatrix[parseInt(card2.dataset.row)][parseInt(card2.dataset.col)] = 0;
+                            
+                            selectedCards = [];
+                            pairsLeft--;
+                            pairsLeftElement.textContent = pairsLeft;
+                            
+                            // 计算得分
+                            const timeBonus = Math.max(100 - Math.floor((Date.now() - startTime) / 1000), 10);
+                            score += 50 + timeBonus;
+                            scoreElement.textContent = score;
+                            
+                            if (pairsLeft === 0) {
+                                clearInterval(timerInterval);
+                                const finalScore = score - (hintsUsed * 50);
+                                alert(`🎉 游戏完成！\n⏱️ 用时: ${timerElement.textContent}秒\n⭐ 最终得分: ${finalScore}`);
+                            }
+                        }, 300);
+                    } else {
+                        setTimeout(() => {
+                            card1.classList.remove('selected');
+                            card2.classList.remove('selected');
+                            selectedCards = [];
+                        }, 500);
+                    }
+                } else {
+                    setTimeout(() => {
+                        card1.classList.remove('selected');
+                        card2.classList.remove('selected');
+                        selectedCards = [];
+                    }, 500);
+                }
+            }
+            
+            // 寻找连接路径（最多3个拐角）
+            function findPath(r1, c1, r2, c2) {
+                if (r1 === r2 && c1 === c2) return false;
+                
+                const queue = [[r1, c1, -1, 0]];
+                const visited = Array(ROWS + 2).fill().map(() => 
+                    Array(COLS + 2).fill().map(() => Array(5).fill(false))
+                );
+                visited[r1][c1][0] = true;
+                
+                const directions = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+                
+                while (queue.length > 0) {
+                    const [row, col, turns, last_dir] = queue.shift();
+                    
+                    if (row === r2 && col === c2 && turns <= 3) {
+                        return true;
+                    }
+                    
+                    if (turns >= 3) continue;
+                    
+                    for (let i = 0; i < 4; i++) {
+                        const [dr, dc] = directions[i];
+                        let nr = row + dr;
+                        let nc = col + dc;
+                        
+                        if (nr < 0 || nc < 0 || nr >= ROWS + 2 || nc >= COLS + 2) continue;
+                        
+                        let new_turns = turns;
+                        if (last_dir !== 0 && last_dir !== i + 1) {
+                            new_turns = turns + 1;
+                        }
+                        
+                        if (new_turns > 3) continue;
+                        
+                        if (visited[nr][nc][i + 1]) continue;
+                        
+                        if (nr === r2 && nc === c2) {
+                            // 允许到达目标
+                        } else if (gameMatrix[nr][nc] !== 0) {
+                            continue;
+                        }
+                        
+                        visited[nr][nc][i + 1] = true;
+                        queue.push([nr, nc, new_turns, i + 1]);
+                    }
+                }
+                
+                return false;
+            }
+            
+            // 提示功能
+            hintBtn.addEventListener('click', () => {
+                if (hintsUsed >= 3) {
+                    alert('提示次数已用完！');
+                    return;
+                }
+                
+                const availableCards = cards.filter(card => !card.classList.contains('matched'));
+                const pairs = {};
+                
+                availableCards.forEach(card => {
+                    const icon = card.dataset.icon;
+                    if (!pairs[icon]) pairs[icon] = [];
+                    pairs[icon].push(card);
+                });
+                
+                for (let icon in pairs) {
+                    if (pairs[icon].length === 2) {
+                        const [card1, card2] = pairs[icon];
+                        if (findPath(
+                            parseInt(card1.dataset.row), parseInt(card1.dataset.col),
+                            parseInt(card2.dataset.row), parseInt(card2.dataset.col)
+                        )) {
+                            card1.style.background = 'linear-gradient(145deg, #ffecd2, #fcb69f)';
+                            card2.style.background = 'linear-gradient(145deg, #ffecd2, #fcb69f)';
+                            
+                            setTimeout(() => {
+                                if (!card1.classList.contains('matched')) {
+                                    card1.style.background = '';
+                                    card2.style.background = '';
+                                }
+                            }, 2000);
+                            
+                            hintsUsed++;
+                            return;
+                        }
+                    }
+                }
+                
+                alert('没有找到可连接的配对！');
+            });
+            
+            // 重新开始游戏
+            restartBtn.addEventListener('click', initGame);
+            
+            // 初始化游戏
+            initGame();
+        });
+    </script>
+</body>
 </html>
